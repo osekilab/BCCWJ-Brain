@@ -32,8 +32,8 @@ conda activate bccwj-brain
 Both scripts expect BIDS-like derivatives directories:
 
 ```
-../BCCWJ-Brain/BCCWJ-EEG/derivatives/sub-XX/eeg/*_ave.fif
-../BCCWJ-Brain/BCCWJ-MEG/derivatives/sub-XX/meg/*_ave.fif
+../ds007753/derivatives/sub-XX/eeg/*_ave.fif
+../ds007763/derivatives/sub-XX/meg/*_ave.fif
 ```
 
 Outputs: `grand_average_EEG.png`, `grand_average_BCCWJ_MEG.png`
@@ -54,7 +54,7 @@ First- and second-level GLM estimating the effects of **word rate** and **word l
 **Required inputs:**
 
 ```
-../BCCWJ-fMRI/derivatives/sub-*/func/
+../ds007752/derivatives/sub-*/func/
     {sub}_task-BCCWJreading_run-{1..4}_preproc_bold.nii.gz
     {sub}_task-BCCWJreading_run-{1..4}_preproc_rp.txt   # SPM realignment parameters (6 columns)
 fMRIpredictors.csv   # columns: section_number, word_rate, word_length (HRF-convolved)
@@ -82,7 +82,7 @@ Leave-one-out **Inter-Subject Correlation (ISC)** analysis, computed section-wis
 **Required inputs:**
 
 ```
-../BCCWJ-fMRI/derivatives/sub-*/func/
+../ds007752/derivatives/sub-*/func/
     {sub}_task-BCCWJreading_run-{1..4}_preproc_bold.nii.gz
 ```
 
@@ -100,31 +100,36 @@ isc_visualization.png   # glass brain + axial slice figure
 
 ## Text–Imaging Event Merge
 
-These scripts merge  text information into the brain imaging event files, producing the annotated event tables used in the main analysis. They are not part of the data validation pipeline. The event files are not freely available. Please check BCCWJ.
+This script merges text information into the brain imaging event files, producing annotated event tables used in the main analysis. It is not part of the data validation pipeline. The event files are not freely available. Please check BCCWJ.
 
+### [bccwj-textmerge.py](bccwj-textmerge.py)
 
-### [bccwj-meegtextmerge.py](bccwj-meegtextmerge.py)
+Adds `surface` (word form) and related text columns (`word_length`, `sent_id`, `bunsetsu_pos`, `count_ave_log`) to each per-subject events file by sequentially pairing subject rows with rows in the master event file (`event.tsv`) within each section. Originals are never modified; output files get a `_with_surface` suffix.
 
-Reconstructs the `surface` (word form) column in each per-subject MEG/EEG events file by sequentially pairing subject rows with rows in the master event file (`MEG-EEGevents.tsv`) within each section. Originals are never modified.
-
-Supports `--dry-run` to preview planned output files without writing anything.
+**Join strategy:**
+- EEG/MEG: match `section_num` (subject) → `subsection_num` (master), pair rows sequentially within each section
+- fMRI: match run-N (filename) → `section_num` (master), pair rows sequentially within each run
 
 **Required inputs:**
 
 ```
-MEG-EEGevents.tsv                                          # master file with subsection_num and surface columns
-sub-*/eeg/sub-*_task-BCCWJreading_events.tsv               # per-subject event files with section_num column
+event.tsv                                                        # master file (surface, word_length, sent_id, bunsetsu_pos, count_ave_log, section_num, subsection_num)
+../ds007753/sub-*/eeg/sub-*_task-BCCWJreading_events.tsv         # EEG per-subject event files
+../ds007763/sub-*/meg/sub-*_task-BCCWJreading_events.tsv         # MEG per-subject event files
+../ds007752/sub-*/func/sub-*_task-BCCWJreading_run-*_events.tsv  # fMRI per-subject per-run event files
 ```
 
 **Output (written alongside each source file):**
 
 ```
-sub-*_task-BCCWJreading_events_with_surface.tsv
+sub-*_task-BCCWJreading_events_with_surface.tsv          # EEG/MEG
+sub-*_task-BCCWJreading_run-*_events_with_surface.tsv    # fMRI
 ```
 
 **Usage:**
 
 ```bash
-python bccwj-meegtextmerge.py            # write output files
-python bccwj-meegtextmerge.py --dry-run  # preview only
+python bccwj-textmerge.py --modality eeg|meg|fmri             # all subjects
+python bccwj-textmerge.py --modality eeg --subject sub-01     # single subject
+python bccwj-textmerge.py --modality fmri --dry-run           # preview only
 ```

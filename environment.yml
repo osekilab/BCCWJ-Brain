@@ -1,0 +1,14 @@
+name: bccwj-brain
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python>=3.10
+  - mne
+  - nilearn
+  - nibabel
+  - numpy
+  - scipy
+  - pandas
+  - matplotlib
+  - natsort

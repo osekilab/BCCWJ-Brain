@@ -133,11 +133,17 @@ event.tsv                                                        # master file
 ../ds007752/sub-*/func/sub-*_task-BCCWJreading_run-*_events.tsv  # fMRI
 ```
 
-**Outputs (written alongside each source file):**
+**Outputs (written to `derivatives/text_events/` within each dataset):**
 
 ```
-sub-*_task-BCCWJreading_events_with_surface.tsv          # EEG/MEG
-sub-*_task-BCCWJreading_run-*_events_with_surface.tsv    # fMRI
+# EEG
+../ds007753/derivatives/text_events/{sub}/eeg/{sub}_task-BCCWJreading_events_with_surface.tsv
+
+# MEG
+../ds007763/derivatives/text_events/{sub}/meg/{sub}_task-BCCWJreading_events_with_surface.tsv
+
+# fMRI
+../ds007752/derivatives/text_events/{sub}/func/{sub}_task-BCCWJreading_run-*_events_with_surface.tsv
 ```
 
 **Usage:**

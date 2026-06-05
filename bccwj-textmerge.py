@@ -94,14 +94,17 @@ def merge_fmri(df: pd.DataFrame, master: pd.DataFrame, run_num: str) -> pd.DataF
 
 def reconstruct(file: Path, master: pd.DataFrame, modality: str, dry_run: bool) -> None:
     bids_id  = file.stem.split('_')[0]
-    out_file = file.parent / (file.stem + OUT_SUFFIX + '.tsv')
+    # Save into derivatives/text_events/ to keep source BIDS dataset clean
+    deriv_dir = file.parents[3] / 'derivatives' / 'text_events' / bids_id / file.parent.name
+    out_file  = deriv_dir / (file.stem + OUT_SUFFIX + '.tsv')
 
     print(f"  {bids_id}  {file.name}")
-    print(f"         -> {out_file.name}")
+    print(f"         -> {out_file}")
 
     if dry_run:
         return
 
+    deriv_dir.mkdir(parents=True, exist_ok=True)
     df = pd.read_csv(file, sep='\t')
 
     if modality in ('eeg', 'meg'):

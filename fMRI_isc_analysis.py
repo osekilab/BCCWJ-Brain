@@ -1,29 +1,3 @@
-"""
-Inter-Subject Correlation (ISC) analysis — leave-one-out, section-wise.
-
-Matches the reference implementation:
-  For each section separately:
-    1. Compute the LOO mean timeseries for each subject (mean of all others).
-    2. Correlate subject i's timeseries with that mean, voxel-wise (Pearson r).
-  Average the per-section ISC maps across sections → one ISC map per subject.
-  Group result: median ISC across subjects.
-
-Memory-efficient two-pass per section:
-  Pass 1 — accumulate sum across subjects for that section.
-  Pass 2 — reload each subject, compute LOO mean, correlate.
-Peak RAM per section ≈ 3 × (n_TRs_sec × n_voxels × 4 bytes) ≈ 700 MB.
-
-Outputs (data/isc/):
-    isc_median.nii        — group median ISC (Pearson r)
-    isc_tstat.nii         — one-sample t-stat (df = N-1)
-    isc_zstat.nii         — equivalent z-stat
-    isc_pmap.nii          — uncorrected two-sided p-value map
-    isc_visualization.png — glass brain + axial slices of median ISC
-
-Run:
-    ./isc_analysis.py
-"""
-
 import gc
 import io
 import os
@@ -40,10 +14,12 @@ from natsort import natsorted
 from scipy import stats
 from nilearn import datasets, plotting
 from nilearn.maskers import NiftiMasker
+from nilearn.glm import threshold_stats_img
 
 # ── Config ────────────────────────────────────────────────────────────────────
 _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-DERIV_DIR   = "../ds007752/derivatives"
+#DERIV_DIR   = "../ds007752/derivatives"
+DERIV_DIR   = "/Users/osekilab1/BCCWJ-fMRI/derivatives"
 OUT_DIR     = os.path.join(_SCRIPT_DIR, "data", "isc")
 os.makedirs(OUT_DIR, exist_ok=True)
 
@@ -56,6 +32,9 @@ Z_COORDS   = [-10, 10, 20, 30, 40]
 R_THRESH   = 0.25
 R_VMAX     = 0.5
 R_CMAP     = LinearSegmentedColormap.from_list("isc_r", ["black", "red", "yellow"], N=256)
+Z_THRESH_VIZ = 2.0
+Z_VMAX       = 6.0
+Z_CMAP       = LinearSegmentedColormap.from_list("isc_z", ["black", "blue", "yellow", "red"], N=256)
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 def load_section(sub, sec_letter, masker):
@@ -161,6 +140,20 @@ save_map(t_vals,     f"{OUT_DIR}/isc_tstat.nii",  masker)
 save_map(z_stat,     f"{OUT_DIR}/isc_zstat.nii",  masker)
 save_map(p_vals,     f"{OUT_DIR}/isc_pmap.nii",   masker)
 
+# ── FWE (Bonferroni) thresholding of z-stat map ───────────────────────────────
+print("\nApplying FWE Bonferroni correction (p < 0.05) ...")
+ZSTAT_PATH = f"{OUT_DIR}/isc_zstat.nii"
+_, z_thresh_fwe = threshold_stats_img(
+    ZSTAT_PATH, alpha=0.05, height_control="bonferroni", cluster_threshold=0
+)
+z_img  = nib.load(ZSTAT_PATH)
+z_data = z_img.get_fdata().copy()
+z_data[np.abs(z_data) < z_thresh_fwe] = 0
+FWE_PATH = f"{OUT_DIR}/isc_zstat_fwe05.nii"
+nib.save(nib.Nifti1Image(z_data, z_img.affine, z_img.header), FWE_PATH)
+print(f"  FWE z-threshold (p<0.05): {z_thresh_fwe:.4f}")
+print(f"  Saved: {FWE_PATH}")
+
 print(f"\n── ISC Summary (df = {N-1}) ──────────────────────────")
 print(f"  Subjects         : {N}")
 print(f"  Sections         : {len(SECTION_ORDER)}")
@@ -177,7 +170,8 @@ print("\nRendering visualization ...")
 
 MEDIAN_PATH = f"{OUT_DIR}/isc_median.nii"
 ROWS = [
-    ("ISC\n(r)", MEDIAN_PATH, R_CMAP, R_THRESH, R_VMAX, "ISC  (Pearson r)"),
+    ("ISC\n(r)",     MEDIAN_PATH, R_CMAP, R_THRESH,     R_VMAX, "ISC  (Pearson r)"),
+    ("ISC\n(z,FWE)", FWE_PATH,    Z_CMAP, Z_THRESH_VIZ, Z_VMAX, "z-stat  (FWE p<0.05)"),
 ]
 
 n_slices = len(Z_COORDS)

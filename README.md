@@ -29,6 +29,7 @@ conda activate bccwj-brain
 
 ## EEG / MEG
  [EEG_grand_average.py](EEG_grand_average.py):  Loads per-subject evoked `.fif` files (baseline −100–0 ms) and computes the grand-average EEG response. Produces a butterfly + GFP plot and a joint topographic plot. 
+ 
  [MEG_grand_average.py](MEG_grand_average.py):  Same workflow for MEG data. 
 
 

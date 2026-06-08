@@ -14,7 +14,6 @@ from natsort import natsorted
 from scipy import stats
 from nilearn import datasets, plotting
 from nilearn.maskers import NiftiMasker
-from nilearn.glm import threshold_stats_img
 
 # ── Config ────────────────────────────────────────────────────────────────────
 _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -140,19 +139,6 @@ save_map(t_vals,     f"{OUT_DIR}/isc_tstat.nii",  masker)
 save_map(z_stat,     f"{OUT_DIR}/isc_zstat.nii",  masker)
 save_map(p_vals,     f"{OUT_DIR}/isc_pmap.nii",   masker)
 
-# ── FWE (Bonferroni) thresholding of z-stat map ───────────────────────────────
-print("\nApplying FWE Bonferroni correction (p < 0.05) ...")
-ZSTAT_PATH = f"{OUT_DIR}/isc_zstat.nii"
-_, z_thresh_fwe = threshold_stats_img(
-    ZSTAT_PATH, alpha=0.05, height_control="bonferroni", cluster_threshold=0
-)
-z_img  = nib.load(ZSTAT_PATH)
-z_data = z_img.get_fdata().copy()
-z_data[np.abs(z_data) < z_thresh_fwe] = 0
-FWE_PATH = f"{OUT_DIR}/isc_zstat_fwe05.nii"
-nib.save(nib.Nifti1Image(z_data, z_img.affine, z_img.header), FWE_PATH)
-print(f"  FWE z-threshold (p<0.05): {z_thresh_fwe:.4f}")
-print(f"  Saved: {FWE_PATH}")
 
 print(f"\n── ISC Summary (df = {N-1}) ──────────────────────────")
 print(f"  Subjects         : {N}")
@@ -170,8 +156,7 @@ print("\nRendering visualization ...")
 
 MEDIAN_PATH = f"{OUT_DIR}/isc_median.nii"
 ROWS = [
-    ("ISC\n(r)",     MEDIAN_PATH, R_CMAP, R_THRESH,     R_VMAX, "ISC  (Pearson r)"),
-    ("ISC\n(z,FWE)", FWE_PATH,    Z_CMAP, Z_THRESH_VIZ, Z_VMAX, "z-stat  (FWE p<0.05)"),
+    ("ISC\n(r)", MEDIAN_PATH, R_CMAP, R_THRESH, R_VMAX, "ISC  (Pearson r)"),
 ]
 
 n_slices = len(Z_COORDS)

@@ -11,8 +11,6 @@ Join strategy:
     fMRI    : match run-N (filename) → section_num (master),
               pair rows sequentially within each run
 
-Originals are never modified. Output files get a '_with_surface' suffix.
-
 Usage:
     python bccwj-textmerge.py --modality eeg|meg|fmri [--subject sub-01] [--dry-run]
 """

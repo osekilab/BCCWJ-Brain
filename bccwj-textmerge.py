@@ -29,12 +29,9 @@ OUT_SUFFIX  = '_with_surface'
 ROOT_DIR = SCRIPT_DIR.parent
 
 MODALITY_CONFIG = {
-    # 'eeg':  {'root': ROOT_DIR / 'ds007753',  'subdir': 'eeg',  'join_key': 'subsection_num'},
-    # 'meg':  {'root': ROOT_DIR / 'ds007763',  'subdir': 'meg',  'join_key': 'subsection_num'},
-    # 'fmri': {'root': ROOT_DIR / 'ds007752', 'subdir': 'func', 'join_key': 'section_num'},
-    'eeg':  {'root': ROOT_DIR / 'BCCWJ-EEG',  'subdir': 'eeg',  'join_key': 'subsection_num'},
-    'meg':  {'root': ROOT_DIR / 'BCCWJ-MEG',  'subdir': 'meg',  'join_key': 'subsection_num'},
-    'fmri': {'root': ROOT_DIR / 'BCCWJ-fMRI', 'subdir': 'func', 'join_key': 'section_num'},
+    'eeg':  {'root': ROOT_DIR / 'ds007753',  'subdir': 'eeg',  'join_key': 'subsection_num'},
+    'meg':  {'root': ROOT_DIR / 'ds007763',  'subdir': 'meg',  'join_key': 'subsection_num'},
+    'fmri': {'root': ROOT_DIR / 'ds007752', 'subdir': 'func', 'join_key': 'section_num'},
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -127,20 +124,18 @@ def reconstruct(file: Path, master: pd.DataFrame, modality: str, dry_run: bool) 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument('--modality', choices=['eeg', 'meg', 'fmri'], required=True,
-                        help='Modality to process: eeg, meg, or fmri')
+    parser.add_argument('--modality', choices=['eeg', 'meg', 'fmri', 'all'], required=True,
+                        help='Modality to process: eeg, meg, fmri, or all')
     parser.add_argument('--subject',
                         help='Process only this subject (e.g. sub-01)')
     parser.add_argument('--dry-run', action='store_true',
                         help='Print planned actions without writing any files')
+    parser.add_argument('--concat', action='store_true',
+                        help='After processing, concatenate all output files into one TSV per modality')
     args = parser.parse_args()
 
-    cfg    = MODALITY_CONFIG[args.modality]
+    modalities = ['eeg', 'meg', 'fmri'] if args.modality == 'all' else [args.modality]
     prefix = '[DRY RUN] ' if args.dry_run else ''
-
-    print(f"{prefix}Modality   : {args.modality.upper()}")
-    print(f"{prefix}Master     : {MASTER_FILE}")
-    print(f"{prefix}Subjects   : {cfg['root']}\n")
 
     if not MASTER_FILE.exists():
         raise SystemExit(f"Master file not found: {MASTER_FILE}")
@@ -148,23 +143,42 @@ def main() -> None:
     master = load_master(MASTER_FILE)
     print(f"Master loaded: {len(master)} rows, columns: {list(master.columns)}\n")
 
-    sub = args.subject or 'sub-*'
-    if args.modality == 'fmri':
-        pattern = f'{sub}/{cfg["subdir"]}/{sub}_task-{TASK}_run-*_events.tsv'
-    else:
-        pattern = f'{sub}/{cfg["subdir"]}/{sub}_task-{TASK}_events.tsv'
+    for modality in modalities:
+        cfg = MODALITY_CONFIG[modality]
+        print(f"{prefix}── Modality : {modality.upper()}")
+        print(f"{prefix}   Subjects : {cfg['root']}\n")
 
-    files = sorted(cfg['root'].glob(pattern))
+        sub = args.subject or 'sub-*'
+        if modality == 'fmri':
+            pattern = f'{sub}/{cfg["subdir"]}/{sub}_task-{TASK}_run-*_events.tsv'
+        else:
+            pattern = f'{sub}/{cfg["subdir"]}/{sub}_task-{TASK}_events.tsv'
 
-    if not files:
-        raise SystemExit(f"No events.tsv files found under {cfg['root']}")
+        files = sorted(cfg['root'].glob(pattern))
 
-    print(f"Found {len(files)} file(s)\n")
+        if not files:
+            print(f"  [SKIP] No events.tsv files found under {cfg['root']}\n")
+            continue
 
-    for f in files:
-        reconstruct(f, master, args.modality, dry_run=args.dry_run)
+        print(f"Found {len(files)} file(s)\n")
 
-    print(f"\n{'Dry run complete. Re-run without --dry-run to write files.' if args.dry_run else 'Done.'}")
+        for f in files:
+            reconstruct(f, master, modality, dry_run=args.dry_run)
+
+        if args.concat and not args.dry_run:
+            modality_dir = ROOT_DIR / 'derivatives' / 'text_events' / modality
+            out_files = sorted(modality_dir.glob('sub-*/*' + OUT_SUFFIX + '.tsv'))
+            if out_files:
+                concat_path = modality_dir / f'all_subjects_task-{TASK}_{modality}{OUT_SUFFIX}.tsv'
+                pd.concat([pd.read_csv(f, sep='\t') for f in out_files], ignore_index=True).to_csv(
+                    concat_path, sep='\t', index=False)
+                print(f"\nConcatenated {len(out_files)} files -> {concat_path}")
+            else:
+                print("\nNo output files found to concatenate.")
+
+        print()
+
+    print(f"{'Dry run complete. Re-run without --dry-run to write files.' if args.dry_run else 'Done.'}")
 
 
 if __name__ == '__main__':

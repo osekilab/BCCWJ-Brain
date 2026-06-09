@@ -29,9 +29,12 @@ OUT_SUFFIX  = '_with_surface'
 ROOT_DIR = SCRIPT_DIR.parent
 
 MODALITY_CONFIG = {
-    'eeg':  {'root': ROOT_DIR / 'ds007753',  'subdir': 'eeg',  'join_key': 'subsection_num'},
-    'meg':  {'root': ROOT_DIR / 'ds007763',  'subdir': 'meg',  'join_key': 'subsection_num'},
-    'fmri': {'root': ROOT_DIR / 'ds007752', 'subdir': 'func', 'join_key': 'section_num'},
+    # 'eeg':  {'root': ROOT_DIR / 'ds007753',  'subdir': 'eeg',  'join_key': 'subsection_num'},
+    # 'meg':  {'root': ROOT_DIR / 'ds007763',  'subdir': 'meg',  'join_key': 'subsection_num'},
+    # 'fmri': {'root': ROOT_DIR / 'ds007752', 'subdir': 'func', 'join_key': 'section_num'},
+    'eeg':  {'root': ROOT_DIR / 'BCCWJ-EEG',  'subdir': 'eeg',  'join_key': 'subsection_num'},
+    'meg':  {'root': ROOT_DIR / 'BCCWJ-MEG',  'subdir': 'meg',  'join_key': 'subsection_num'},
+    'fmri': {'root': ROOT_DIR / 'BCCWJ-fMRI', 'subdir': 'func', 'join_key': 'section_num'},
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -92,8 +95,9 @@ def merge_fmri(df: pd.DataFrame, master: pd.DataFrame, run_num: str) -> pd.DataF
 
 def reconstruct(file: Path, master: pd.DataFrame, modality: str, dry_run: bool) -> None:
     bids_id  = file.stem.split('_')[0]
-    # Save into derivatives/text_events/ to keep source BIDS dataset clean
-    deriv_dir = file.parents[3] / 'derivatives' / 'text_events' / bids_id / file.parent.name
+    # Save into derivatives/text_events/<modality>/<subject>/
+    modality_dir = 'fmri' if file.parent.name == 'func' else file.parent.name
+    deriv_dir = file.parents[3] / 'derivatives' / 'text_events' / modality_dir / bids_id
     out_file  = deriv_dir / (file.stem + OUT_SUFFIX + '.tsv')
 
     print(f"  {bids_id}  {file.name}")

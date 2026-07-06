@@ -57,4 +57,6 @@ Leave-one-out **Inter-Subject Correlation (ISC)** analysis, computed section-wis
 
 ### [bccwj-textmerge.py](bccwj-textmerge.py)
 
+The texts are not avaiable publicly. Please obtain a BCCWJ license first (check [https://clrd.ninjal.ac.jp/bccwj/en/subscription.html](https://clrd.ninjal.ac.jp/bccwj/en/subscription.html)).
+
 Merges text annotations from the BCCWJ master event file into per-subject BIDS event files. Adds `surface` (word form), `word_length`, `sent_id`, and `bunsetsu_pos` columns by sequentially pairing rows within each section. Source files are never modified; outputs get a `_with_surface` suffix.

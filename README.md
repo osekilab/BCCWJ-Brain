@@ -28,9 +28,13 @@ conda activate bccwj-brain
 ---
 
 ## EEG / MEG
- [EEG_grand_average.py](EEG_grand_average.py):  Loads per-subject evoked `.fif` files (baseline −100–0 ms) and computes the grand-average EEG response. Produces a butterfly + GFP plot and a joint topographic plot. 
+ [EEG_grand_average.py](EEG_grand_average.py):  Loads per-subject evoked `.fif` files (baseline −100–0 ms) and computes the grand-average EEG response. Produces a butterfly + GFP plot and a joint topographic plot. Also provides an `evoked_from_continuous()` helper (see Event timing below).
  
  [MEG_grand_average.py](MEG_grand_average.py):  Same workflow for MEG data. 
+
+ [shift_derivative_annotations.py](shift_derivative_annotations.py):  Onset-corrects the continuous EEG derivatives — shifts each word marker in `derivatives/*_raw.fif` by −0.5 s (offset → onset).
+
+**Event timing (EEG).** The presentation trigger was recorded at each word's **offset**. The **raw** recordings (`.eeg/.vhdr/.vmrk`) and `events.tsv` keep that offset trigger, as recorded. The **derivatives are onset-corrected**: the continuous `*_raw.fif` word markers and the evoked `*_ave.fif` are time-locked to word **onset** (onset = offset − 500 ms). So you can epoch a continuous derivative directly — no shift needed. See `evoked_from_continuous()` in [EEG_grand_average.py](EEG_grand_average.py).
 
 
 

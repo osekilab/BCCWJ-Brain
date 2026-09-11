@@ -34,7 +34,7 @@ conda activate bccwj-brain
 
  [shift_derivative_annotations.py](shift_derivative_annotations.py):  Onset-corrects the continuous EEG derivatives — shifts each word marker in `derivatives/*_raw.fif` by −0.5 s (offset → onset).
 
-**Event timing (EEG).** The presentation trigger was recorded at each word's **offset**. The **raw** recordings (`.eeg/.vhdr/.vmrk`) and `events.tsv` keep that offset trigger, as recorded. The **derivatives are onset-corrected**: the continuous `*_raw.fif` word markers and the evoked `*_ave.fif` are time-locked to word **onset** (onset = offset − 500 ms). So you can epoch a continuous derivative directly — no shift needed. See `evoked_from_continuous()` in [EEG_grand_average.py](EEG_grand_average.py).
+**Event timing (EEG).** The presentation trigger was accidentally recorded at each word's **offset** rather than its onset. In `events.tsv` this is represented the standard BIDS way: `onset` is the true word onset and `duration` is 0.5 s (the display duration), so the recorded trigger = `onset + duration`. The **raw** `.eeg/.vhdr/.vmrk` markers are left at the offset, as recorded. The **derivatives are onset-corrected**: the continuous `*_raw.fif` word markers and the evoked `*_ave.fif` are time-locked to word **onset**, so you can epoch a continuous derivative directly — no shift needed. See `evoked_from_continuous()` in [EEG_grand_average.py](EEG_grand_average.py).
 
 
 
